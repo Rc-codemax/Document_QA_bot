@@ -1,69 +1,131 @@
-import { useEffect, useState } from 'react';
-import { documentAPI } from '../services/api';
+import { useState } from 'react';
+import { FileText, Trash2, File } from 'lucide-react';
+import { useDocuments } from '../hooks/useDocuments';
+import type { Document, FileType } from '../types';
 
-interface Document {
-  id: number;
-  filename: string;
-  file_type: string;
-  upload_date: string;
-  num_chunks: number;
+// ---- helpers -----------------------------------------------------------
+const FILE_TYPE_COLORS: Record<FileType, string> = {
+  pdf:  'badge--pdf',
+  docx: 'badge--docx',
+  txt:  'badge--txt',
+  md:   'badge--md',
+};
+
+function getFileIcon(fileType: string) {
+  const textTypes = ['txt', 'md', 'docx'];
+  return textTypes.includes(fileType.toLowerCase()) ? FileText : File;
 }
 
+// ---- sub-component: skeleton row ---------------------------------------
+function SkeletonRow() {
+  return (
+    <div className="document-item document-item--skeleton" aria-hidden="true">
+      <div className="skeleton skeleton--icon" />
+      <div className="document-info">
+        <div className="skeleton skeleton--text skeleton--text-lg" />
+        <div className="skeleton skeleton--text skeleton--text-sm" />
+      </div>
+    </div>
+  );
+}
+
+// ---- sub-component: document row ---------------------------------------
+interface DocumentRowProps {
+  doc: Document;
+  onDelete: (id: number) => void;
+}
+
+function DocumentRow({ doc, onDelete }: DocumentRowProps) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const Icon = getFileIcon(doc.file_type);
+  const normalizedType = doc.file_type.toLowerCase().replace('.', '') as FileType;
+  const badgeClass = FILE_TYPE_COLORS[normalizedType] ?? 'badge--default';
+
+  const uploadDate = new Date(doc.upload_date).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  return (
+    <div className="document-item">
+      <Icon size={18} className="document-item__icon" strokeWidth={1.5} />
+      <div className="document-info">
+        <p className="document-name" title={doc.filename}>
+          {doc.filename}
+        </p>
+        <p className="document-meta">
+          <span className={`file-badge ${badgeClass}`}>
+            {doc.file_type.toUpperCase().replace('.', '')}
+          </span>
+          {doc.num_chunks} chunks · {uploadDate}
+        </p>
+      </div>
+      <div className="document-item__actions">
+        {confirmOpen ? (
+          <>
+            <button
+              className="btn-danger"
+              onClick={() => { onDelete(doc.id); setConfirmOpen(false); }}
+              // eslint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus
+            >
+              Confirm
+            </button>
+            <button
+              className="btn-ghost btn-ghost--sm"
+              onClick={() => setConfirmOpen(false)}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button
+            className="btn-icon"
+            onClick={() => setConfirmOpen(true)}
+            aria-label={`Delete ${doc.filename}`}
+            title="Delete document"
+          >
+            <Trash2 size={15} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---- main component ----------------------------------------------------
 interface DocumentListProps {
   refresh: number;
 }
 
 export default function DocumentList({ refresh }: DocumentListProps) {
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchDocuments = async () => {
-    try {
-      const response = await documentAPI.list();
-      setDocuments(response.data);
-    } catch (error) {
-      console.error('Error fetching documents:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDocuments();
-  }, [refresh]);
-
-  const handleDelete = async (docId: number) => {
-    if (!confirm('Are you sure you want to delete this document?')) return;
-
-    try {
-      await documentAPI.delete(docId);
-      fetchDocuments();
-    } catch (error) {
-      alert('Error deleting document');
-    }
-  };
-
-  if (loading) return <p>Loading documents...</p>;
+  const { documents, loading, deleteDocument } = useDocuments(refresh);
 
   return (
-    <div className="document-list">
-      <h3>Uploaded Documents ({documents.length})</h3>
-      {documents.length === 0 ? (
-        <p className="no-documents">No documents uploaded yet</p>
+    <div>
+      <h2 className="document-list__heading">
+        Documents
+        {!loading && (
+          <span className="document-count">{documents.length}</span>
+        )}
+      </h2>
+
+      {loading ? (
+        <div aria-label="Loading documents">
+          <SkeletonRow />
+          <SkeletonRow />
+          <SkeletonRow />
+        </div>
+      ) : documents.length === 0 ? (
+        <div className="empty-state empty-state--sm">
+          <FileText size={28} strokeWidth={1.5} className="empty-state__icon" />
+          <p className="empty-state__hint">No documents uploaded yet</p>
+        </div>
       ) : (
-        <div>
+        <div className="document-items">
           {documents.map((doc) => (
-            <div key={doc.id} className="document-item">
-              <div className="document-info">
-                <p className="document-name">{doc.filename}</p>
-                <p className="document-meta">
-                  {doc.num_chunks} chunks • {new Date(doc.upload_date).toLocaleDateString()}
-                </p>
-              </div>
-              <button onClick={() => handleDelete(doc.id)} className="delete-btn">
-                Delete
-              </button>
-            </div>
+            <DocumentRow key={doc.id} doc={doc} onDelete={deleteDocument} />
           ))}
         </div>
       )}
