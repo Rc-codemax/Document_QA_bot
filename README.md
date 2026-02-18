@@ -184,16 +184,6 @@ const API_BASE_URL = 'http://localhost:8000/api';  // Change if needed
 - `GET /` - API info
 - `GET /health` - Health check
 
-## 🔮 Future Enhancements
-
-- [ ] User authentication and authorization
-- [ ] Multiple knowledge bases per user
-- [ ] Real-time streaming responses
-- [ ] Chat history export (PDF, Markdown)
-- [ ] Support for images and tables in PDFs
-- [ ] Advanced filtering and search
-- [ ] Dark mode
-- [ ] Deployment guides (Docker, Cloud)
 
 ## 🐛 Troubleshooting
 
@@ -219,14 +209,3 @@ const API_BASE_URL = 'http://localhost:8000/api';  // Change if needed
 - Activate virtual environment before running backend
 - Run `pip install -r requirements.txt` again
 
-
-## 🙏 Acknowledgments
-
-- Built with [FastAPI](https://fastapi.tiangolo.com/)
-- Powered by [LangChain](https://python.langchain.com/)
-- LLM inference by [Ollama](https://ollama.ai)
-- Vector storage by [ChromaDB](https://www.trychroma.com/)
-
----
-
-⭐ If you find this project helpful, please consider giving it a star!
